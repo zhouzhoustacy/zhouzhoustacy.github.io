@@ -1,0 +1,165 @@
+---
+title: "Sentiment analysis"
+author: "Yueqi Zhou"
+date: "11/21/2019"
+output: html_document
+---
+
+Although Steam provides a tag of "Recommended" or "Not Recommended" that reviewers can choose to show their overall degree of satisfaction, the tag sometimes do not really reflect the sentiment in the reviews. 
+
+Some reviewers choose the tag "recommend" out of habit but may give out some detailed negative comments in the review content. Vice versa. 
+To analyse the reviews content more insightful, instead of simply relying on the percentage of "Recommended" and "Not recommended", sentiment analysis is carried to give a grade of each game from the overall reviews.
+
+We crawl reviews from the top 20 most popular games among 8 genres.In topic modeling we bind game reviews from the same category into one file and analysis them as whole. But in sentiment analysis it is better to give out evaluation of each game. So I choose to do the analysis by game instead of category so that game developers can have a better understanding on how their customers perceive their games.
+
+In sentiment analysis, due to the limitation of space, it is impossible to do sentiment analysis on all 160 games, so I only take the reviews from the second simulation game as an example. 
+
+(the game is Euro Truck Simulator 2 and its introduction is as followed:
+"Travel across Europe as king of the road, a trucker who delivers important cargo across impressive distances! With dozens of cities to explore from the UK, Belgium, Germany, Italy, the Netherlands, Poland, and many more, your endurance, skill and speed will all be pushed to their limits. If you’ve got what it takes to be part of an elite trucking force, get behind the wheel and prove it!")
+
+Simply input the reviews of each game and this file will gives out the final overall score (100 scale) of the game from the aspect of sentiment analysis.
+
+
+```{r} 
+#load the review data
+library(tm)
+Simulation<-read.csv("reviews_Simulation_2.csv", stringsAsFactors = FALSE)
+reviews <- Corpus(VectorSource(Simulation$comments),readerControl = list(language = "en_US"))
+length(reviews)
+inspect(reviews[1])
+```
+
+```{r}
+#remove useless words from the reviews
+#Convert all the reviews from a game into a corpus. Do necessary data cleaning so that the complicated text can be simplified into form that are easier to analyze. Add on more stop words specify for this game category. These more stop words are the same as we have chosen in the topic modeling.
+
+reviews<-tm_map(reviews,stripWhitespace)
+reviews<-tm_map(reviews,content_transformer(tolower)) 
+reviews<-tm_map(reviews,removeWords,stopwords("english"))
+
+more.stop.words <- c("game","can","like","just","get","good","will","one","really","even","much","games","still","play","also","now","want","way","make","every","many","need","played","lot")
+#those morestopwords are chosen from the result of the frequency word calculation in the topic modeling segment (see the topic modeling html)
+reviews<- tm_map(reviews,removeWords, more.stop.words)
+
+reviews<-tm_map(reviews,removeNumbers)
+reviews<-tm_map(reviews,removePunctuation)
+reviews.stem<- tm_map(reviews, stemDocument, language = "english")
+inspect(reviews[1])
+```
+
+```{r}
+initial.tdm <- TermDocumentMatrix(reviews.stem)
+dim(initial.tdm)
+```
+```{r}
+remove.sparse.tdm <- removeSparseTerms(initial.tdm, sparse = 0.98)
+dim(remove.sparse.tdm)
+#remove words with high sparsity
+```
+
+```{r}
+findFreqTerms(remove.sparse.tdm,lowfreq = 50)
+#from the result we can see the high frequency words are mostly with meaning that worth interpretation
+```
+
+```{r}
+#generate a wordcloud speficied for this game
+#I choose to generate the wordcloud using the high frequency words without being stem because the original form of words can make the wordcloud easier to understand
+
+library(wordcloud)
+wordcloud(reviews,max.words=100,random.order=FALSE,colors=brewer.pal(8, "Dark2"))
+
+```
+
+Wordcloud is a very clear and direct way to show what are the elements that customers are frequently talking about and drawing attention to. I do not use the stem version of reviews to draw the wordcloud. Instead, I use the original form because the original form can be easier to understand.
+This game is the top 2 most popular simulation game. We can see many reviewers talking about the game setting.
+Apart from the content, many emotional words also show up frequently. Words like great, amazing, realistic, love, relaxing, can largely describe how player feel positive about this game. Boring is the main negative keyword appear in reviews.
+
+
+```{r}
+#load the positive and negative dictionary
+# convert to bytecodes to avoid "invalid multibyte string" messages
+bytecode.convert <- function(x) {iconv(enc2utf8(x), sub = "byte")}
+
+# read in positive and negative word lists from Hu and Liu (2004)
+positive.data.frame <- read.table(file = "Hu_Liu_positive_word_list.txt",header = FALSE, colClasses = c("character"), row.names = NULL,col.names = "positive.words")
+positive.data.frame$positive.words <- bytecode.convert(positive.data.frame$positive.words)
+  
+negative.data.frame <- read.table(file = "Hu_Liu_negative_word_list.txt",header = FALSE, colClasses = c("character"), row.names = NULL,col.names = "negative.words")  
+negative.data.frame$negative.words <- bytecode.convert(negative.data.frame$negative.words)
+```
+
+We use the HU LIU positive and negative dictionary as a measurement of positive and negative tone. However, one limitation of this dictionary is that it is very general and give classification to words without considering the context that the word is in. So one important step here is to remove those words considered as negative but actually are just talking about the game.
+
+```{r}
+#find the positive words
+Hu.Liu.positive.dictionary <- c(as.character(positive.data.frame$positive.words))
+reviews.Hu.Liu.positive <- TermDocumentMatrix(reviews.stem, list(dictionary = Hu.Liu.positive.dictionary))
+examine<- removeSparseTerms(reviews.Hu.Liu.positive, 0.999)
+top.words <- Terms(examine)
+print(top.words)
+Hu.Liu.frequent.positive <- findFreqTerms(reviews.Hu.Liu.positive, 40)
+test.positive.dictionary <- c(as.character(Hu.Liu.frequent.positive))
+```
+
+
+```{r}
+#find the negative words and make some adjustment to the negative dictionary based on the game content
+Hu.Liu.negative.dictionary <-c(as.character(negative.data.frame$negative.words))
+reviews.Hu.Liu.negative <- TermDocumentMatrix(reviews.stem,list(dictionary = Hu.Liu.negative.dictionary))
+examine<-removeSparseTerms(reviews.Hu.Liu.negative,0.999)
+top.words<-Terms(examine)
+print(top.words)
+Hu.Liu.frequent.negative <- findFreqTerms(reviews.Hu.Liu.negative, 40)
+
+test.negative <- setdiff(Hu.Liu.frequent.negative,c("crash","death","chill","addict","sink","cheap","dead","bump","dark","killer","burn","fell","murder","steal","kill","dead","cheap","dark","fall","fell"))
+#since these negative words in the reviews are mostly likely to be describing the game content so I remove them from the negarive segment
+
+test.negative.dictionary <- c(as.character(Hu.Liu.frequent.negative))
+```
+
+```{r}
+#initialise vectors to store number of all words, number of positive words, number of negative words
+#and number of neutral words.
+total.words <- integer(length(names(reviews.stem)))
+positive.words <- integer(length(names(reviews.Hu.Liu.positive)))
+negative.words <- integer(length(names(reviews.Hu.Liu.negative)))
+other.words<-integer(length(names(reviews.stem))-length(names(reviews.Hu.Liu.positive))-length(names(reviews.Hu.Liu.negative)))
+
+```
+
+
+```{r}
+reviews.tdm <- TermDocumentMatrix(reviews.stem)
+
+#generate the stem form of reviews and calculate the number of different kind of words 
+
+for(index.for.document in seq(along=names(reviews.stem))) {
+ positive.words[index.for.document] <- sum(termFreq(reviews[[index.for.document]], control = list(dictionary =    test.positive.dictionary)))
+
+ negative.words[index.for.document] <- sum(termFreq(reviews.stem[[index.for.document]], control = list(dictionary = test.negative.dictionary)))  
+
+ total.words[index.for.document] <- length(reviews.tdm[,index.for.document][["i"]])
+
+ other.words[index.for.document] <- total.words[index.for.document] -positive.words[index.for.document] - negative.words[index.for.document]
+  }
+
+
+document <- names(reviews.stem)
+train.data.frame <- data.frame(document,total.words,positive.words, negative.words, other.words, stringsAsFactors = FALSE) 
+
+# compute text measures as percentages of words in each set
+train.data.frame$POSITIVE <- 100 * train.data.frame$positive.words / train.data.frame$total.words
+  
+train.data.frame$NEGATIVE <- 100 * train.data.frame$negative.words / train.data.frame$total.words 
+
+train.data.frame$overall<- train.data.frame$POSITIVE- train.data.frame$NEGATIVE
+
+```
+
+
+```{r}
+#calculate the final score of sentiment analysis
+mean(train.data.frame$overall,na.rm=T)
+```
+the final score is 13.4, which is quite a positive score, indicating that the overall reviews of this game are in positive tone.
