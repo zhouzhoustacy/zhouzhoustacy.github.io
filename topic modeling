@@ -1,0 +1,99 @@
+---
+title: "Topic Modeling-Simulation"
+author: "Yueqi Zhou"
+date: "11/15/2019"
+output: html_document
+---
+```{r}
+#load csv file from working directory
+library(unpivotr)
+Simulation<-read.csv("reviews_Simulation2000.csv", stringsAsFactors = FALSE)
+
+Simulation<-as.data.frame(Simulation[,3],stringsAsFactors = FALSE)
+colnames(Simulation)<-c("comments")
+
+#merge into one cell
+Simulation<-as_cells(Simulation)
+Simulation_merge<-merge_rows(Simulation, 1:37713, chr)
+write.csv(Simulation_merge,file="Simulation_merge",row.names = F)
+
+```
+
+Topic Modelling
+```{r}
+library(tm)
+review.corpus<-Corpus(VectorSource(Simulation_merge$chr))
+```
+
+
+```{r}
+
+#clean up data
+#Remove white space
+review.corpus <- tm_map(review.corpus, stripWhitespace)
+
+#Convert all words to lower case
+review.corpus <- tm_map(review.corpus, content_transformer(tolower))
+
+#Remove numbers
+review.corpus <- tm_map(review.corpus, removeNumbers)
+
+#Remove stopwords.
+#Stopwords usually refer to the most common 
+review.corpus <- tm_map(review.corpus, removeWords, stopwords("english"))
+
+#Remove punctuations
+review.corpus <- tm_map(review.corpus, removePunctuation)
+
+library(SnowballC)
+#stem words
+review.corpus <- tm_map(review.corpus, wordStem, language = "english")
+
+#After the cleanup of review texts, try to generate meaningful document term matrix.
+initial.tdm <- TermDocumentMatrix(review.corpus)
+dim(initial.tdm)
+
+#Remove terms with sparity above 0.96. 
+remove.sparse.tdm <- removeSparseTerms(initial.tdm, sparse = 0.96)
+dim(remove.sparse.tdm)
+
+#calculate the row sums of the matrix, which is the frequency of each term. Then sort the
+#result in descending order
+freq <- sort(rowSums(as.matrix(remove.sparse.tdm)), decreasing=TRUE)
+head(freq,100)
+```
+
+```{r}
+#the list might not be complete. Tried to remove all those neutral words
+more.stop.words <- c("game","can","like","just","get","good","will","one","really","even","much","games","still","play","also","now","want","way","make","every","many","need")
+review.corpus <- tm_map(review.corpus, removeWords, more.stop.words)
+```
+
+```{r}
+initial.tdm <- DocumentTermMatrix(review.corpus)
+dim(initial.tdm)
+#Remove terms with sparity above 0.98. 
+remove.sparse.tdm <- removeSparseTerms(initial.tdm, sparse = 0.98)
+dim(remove.sparse.tdm)
+```
+```{r}
+#Now perform topic modelling using LDA method.
+
+library(topicmodels)
+
+rowTotals <- apply(remove.sparse.tdm , 1, sum) #Find the sum of words in each Document
+remove.sparse.tdm   <- remove.sparse.tdm[rowTotals> 0, ]   
+
+# set a seed so that the output of the model is predictable
+lda1 <- LDA(remove.sparse.tdm, method = "Gibbs", k = 3, control = list(seed = 1234, alpha=0.1))
+
+terms(lda1, 30)
+```
+
+```{r}
+simulation_topic<-terms(lda1, 30)
+write.csv(simulation_topic,"simulation_topic.csv")
+```
+
+
+
