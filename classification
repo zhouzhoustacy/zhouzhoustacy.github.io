@@ -1,0 +1,90 @@
+---
+title: "classification"
+author: "Yueqi Zhou"
+date: "12/3/2019"
+output: html_document
+---
+
+```{r}
+#load selected game csv file 
+library(unpivotr)
+game<-read.csv("Planet Coaster_reviews.csv", stringsAsFactors = FALSE)
+
+```
+
+
+
+```{r}
+game<-as.data.frame(game,stringsAsFactors = FALSE)
+colnames(game)<-c("comments")
+#merge into one cell
+game<-as_cells(game)
+game<-merge_rows(game, 1:2000, chr)
+#text analysis for one game
+library(tm)
+library(NLP)
+review.corpus<-Corpus(VectorSource(game$chr))
+```
+
+
+```{r}
+#clean up data
+#Remove white space
+review.corpus <- tm_map(review.corpus, stripWhitespace)
+
+#Convert all words to lower case
+review.corpus <- tm_map(review.corpus, content_transformer(tolower))
+
+#Remove numbers
+review.corpus <- tm_map(review.corpus, removeNumbers)
+
+#Remove punctuations
+review.corpus <- tm_map(review.corpus, removePunctuation)
+
+library(SnowballC)
+#stem words
+review.corpus <- tm_map(review.corpus, wordStem, language = "english")
+```
+
+
+```{r}
+#After the cleanup of review texts, try to generate meaningful document term matrix.
+initial.tdm <- TermDocumentMatrix(review.corpus)
+dim(initial.tdm)
+
+#Remove terms with sparity above 0.96. 
+remove.sparse.tdm <- removeSparseTerms(initial.tdm, sparse = 0.96)
+dim(remove.sparse.tdm)
+
+#calculate the row sums of the matrix, which is the frequency of each term. Then sort the
+#result in descending order
+freq <- as.data.frame(sort(rowSums(as.matrix(remove.sparse.tdm)), decreasing=TRUE))
+totalwords<-colSums(freq)
+#match topic and game review/give each topic one score
+```
+
+
+```{r}
+library(stringr)
+topic<-read.csv("alltopics.csv", stringsAsFactors = FALSE)
+topic<-topic[,(2:25)]
+freq$name<-rownames(freq)
+name<-colnames(topic)
+result<-as.data.frame(topic[,1])
+Topicnumber<-c(1:24)
+for(i in Topicnumber){
+
+
+topici<-as.data.frame(topic[,i])
+colnames(topici)<-"name"
+
+data<-merge(freq,topici,by.x="name",by.y="name",all.y=TRUE)
+colnames(data)<-c("name","times")
+result[,i]<-as.data.frame(data[,2])
+}
+colnames(result)<-colnames(topic)
+result[is.na(result)] <- 0
+output<-as.data.frame(colSums(result)/totalwords)
+output
+```
+
