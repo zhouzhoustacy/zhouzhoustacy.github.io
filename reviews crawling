@@ -1,0 +1,2163 @@
+---
+title: "Crawler-Simulation"
+author: "Yueqi Zhou"
+date: "11/15/2019"
+output: html_document
+---
+
+#1
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c('Planet Zoo'),
+
+  "id"=c(703080)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4444L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_1.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#2
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Euro Truck Simulator 2'),
+
+  "id"=c(227300)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4445L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_2.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#3
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Garrys Mod'),
+
+  "id"=c(4000)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4444L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_3.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#4
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Sid Meiers Civilization® VI'),
+
+  "id"=c(289070)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4444L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_4.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#5
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'World of Tanks Blitz'),
+
+  "id"=c(444200)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4444L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_5.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#6
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Hearts of Iron IV'),
+
+  "id"=c(394360)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4445L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_6.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#7
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Farming Simulator 19'),
+
+  "id"=c(787860)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4444L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_7.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#8
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'War Thunder'),
+
+  "id"=c(236390)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4445L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_8.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#9
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Europa Universalis IV'),
+
+  "id"=c(236850)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4445L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_9.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+#10
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Arma 3'),
+
+  "id"=c(107410)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4445L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_10.csv")
+
+driver$close()
+rD$server$stop()
+
+
+```
+
+
+#11
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c('DayZ'),
+  "id"=c(221100)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_11.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+#12
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Squad'),
+  "id"=c(393380)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_12.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#13
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Crusader Kings II'),
+  "id"=c(203770)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_13.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+#14
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Cities: Skylines'),
+  "id"=c(255710)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_14.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#15
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c( 
+'RimWorld'),
+  "id"=c(294100)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_15.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#16
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Stardew Valley'),
+  "id"=c(413150)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_16.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#17
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'VRChat' 
+),
+  "id"=c(438100)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4444L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_17.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#18
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'Space Engineers'),
+  "id"=c(244850)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_18.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#19
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c( 
+'Oxygen Not Included'),
+  "id"=c(457140)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_19.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+#20
+
+```{r}
+library(RSelenium)
+require("httr")
+require('rvest')
+
+
+sleep_interval <- 1 
+
+games <- data.frame(
+  name=c(
+'The Forest'),
+  "id"=c(242760)
+)
+
+parse_html <- function(pagesource){
+  result <- read_html(pagesource) %>%
+    html_nodes(".apphub_CardTextContent") %>%
+    html_text()
+  result <- gsub('\n\t{4}Posted.*\n\t{12}', '', result)
+  result <- gsub('Early Access Review\n\t{8}', '', result)
+  result <- gsub('\t', '', result)
+  result <- gsub('\nPosted.*\n', '', result)
+  result <- gsub('\n', '', result)
+  return(unique(result))
+}
+
+reviews <- data.frame()
+rD <- rsDriver(browser=c("firefox"), port = 4567L)
+driver <- rD$client
+
+dir.create("reviews", showWarnings=FALSE)
+
+for(row_idx in 1:nrow(games)){
+  game <- games[row_idx,]
+  gameid <- game$id
+  gamename <- game$name
+  print(sprintf("Processing game %s...", gamename))
+  url_addr <- sprintf("https://steamcommunity.com/app/%d/reviews/?browsefilter=toprated&l=english", gameid)
+  driver$navigate(url_addr)
+  
+  freq <- 10
+  counter <- 0
+  max_reviews <- 2000
+  flag <- TRUE
+  if(exists("pagesource")){
+    rm("pagesource")
+  }
+  
+  btns <- driver$findElements("id", "age_gate_btn_continue")
+  if(length(btns) != 0){
+    btns[[1]]$clickElement()
+    Sys.sleep(sleep_interval * 3)
+  }
+  
+  element <- driver$findElement("css", "body")
+  
+  while(flag){
+    counter <- counter + 1
+    for(i in 1:freq){
+      element$sendKeysToElement(list("key"="page_down"))
+      Sys.sleep(sleep_interval) 
+    }
+    
+    if(exists("pagesource")){
+      if(pagesource == driver$getPageSource()[[1]]){
+        flag <- FALSE
+        result <- parse_html(pagesource)
+        print(sprintf("No more reviews. Total %d reviews", length(result)))
+      } else {
+        pagesource <- driver$getPageSource()[[1]]
+        result <- parse_html(pagesource)
+        if(length(result) >= max_reviews){
+          flag <- FALSE
+        }
+      }
+    }else{
+      pagesource <- driver$getPageSource()[[1]]
+    }
+  }
+  
+  pagesource <- driver$getPageSource()[[1]]
+  result <- parse_html(pagesource)
+  
+  df <- data.frame(
+    "name"=rep(gamename, length(result)),
+    "comments"=result
+  )
+  
+  if(nrow(df) > max_reviews){
+    df <- df[1:max_reviews,]
+  }
+  
+  write.csv(df, file.path("reviews", sprintf("%s_reviews.csv", gamename)))
+  reviews <- rbind(reviews, df)
+}
+
+write.csv(reviews, file="reviews_Simulation_20.csv")
+
+driver$close()
+rD$server$stop()
+
+```
+
+
+
+
+
+```{r}
+reviews1<-read.csv("reviews_Simulation_1.csv")
+reviews2<-read.csv("reviews_Simulation_2.csv")
+reviews3<-read.csv("reviews_Simulation_3.csv")
+reviews4<-read.csv("reviews_Simulation_4.csv")
+reviews5<-read.csv("reviews_Simulation_5.csv")
+reviews6<-read.csv("reviews_Simulation_6.csv")
+reviews7<-read.csv("reviews_Simulation_7.csv")
+reviews8<-read.csv("reviews_Simulation_8.csv")
+reviews9<-read.csv("reviews_Simulation_9.csv")
+reviews10<-read.csv("reviews_Simulation_10.csv")
+reviews11<-read.csv("reviews_Simulation_11.csv")
+reviews12<-read.csv("reviews_Simulation_12.csv")
+reviews13<-read.csv("reviews_Simulation_13.csv")
+reviews14<-read.csv("reviews_Simulation_14.csv")
+reviews15<-read.csv("reviews_Simulation_15.csv")
+reviews16<-read.csv("reviews_Simulation_16.csv")
+reviews17<-read.csv("reviews_Simulation_17.csv")
+reviews18<-read.csv("reviews_Simulation_18.csv")
+reviews19<-read.csv("reviews_Simulation_19.csv")
+reviews20<-read.csv("reviews_Simulation_20.csv")
+
+reviews_Simulation<-rbind(reviews1,reviews2, reviews3,reviews4, reviews5,reviews6,reviews7,reviews8, reviews9,reviews10, reviews11,reviews12,reviews13,reviews14,reviews15,reviews16,reviews17,reviews18,reviews19,reviews20)
+write.csv(reviews_Simulation,file = "reviews_Simulation2000.csv",row.names = F)
+```
+
